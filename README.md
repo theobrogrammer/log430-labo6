@@ -207,6 +207,59 @@ Testez le comportement de votre orchestrateur Saga en cas d'échec :
 2. Essayez de créer une commande via l'orchestrateur Saga
 3. Observez le comportement dans les logs (via Docker Desktop) et dans Jaeger
 
+## 🧪 Guide de Test avec Postman
+
+### Prérequis pour les tests
+1. **Démarrer tous les services** dans l'ordre suivant :
+   ```bash
+   # 1. Store Manager (dans log430-a25-labo5)
+   cd ../log430-a25-labo5
+   docker-compose up -d
+   
+   # 2. Payment Service (dans log430-a25-labo5-payment)
+   cd ../log430-a25-labo5-payment
+   docker-compose up -d
+   
+   # 3. Saga Orchestrator (dans log430-labo6)
+   cd ../log430-labo6
+   docker-compose up -d
+   ```
+
+2. **Importer la collection Postman** : `docs/collections/saga_orchestrator.json`
+
+### Ordre de test recommandé
+
+1. **Tests d'infrastructure** (dossier "1. Health Checks")
+   - Vérifier que tous les services répondent
+   - Tous doivent retourner HTTP 200
+
+2. **Préparation des données** (dossier "2. Tests Préparatoires")
+   - Vérifier le stock initial
+   - Ajouter du stock si nécessaire
+
+3. **Tests de saga réussie** (dossier "3. Tests de Saga - Cas de Succès")
+   - Commencer par "Saga Réussie - 1 Produit"
+   - Réponse attendue : `{"order_id": 12345, "status": "OK"}`
+
+4. **Tests d'échec** (dossier "4. Tests de Saga - Cas d'Échec")
+   - Tester "Échec - Stock Insuffisant"
+   - Vérifier que les rollbacks sont exécutés
+
+### Variables Postman (déjà configurées)
+- `saga_url`: http://localhost:5123
+- `gateway_url`: http://localhost:8080  
+- `store_manager_url`: http://localhost:5000
+- `payment_service_url`: http://localhost:5009
+
+### Débogage des tests
+Si un test échoue :
+```bash
+# Consulter les logs
+docker-compose logs saga_orchestrator
+docker-compose logs store_manager  # (dans log430-a25-labo5)
+docker-compose logs payments_api   # (dans log430-a25-labo5-payment)
+```
+
 ## 🔍 Astuces de débogage
 
 - **Ajoutez des loggers** : Lorsqu'une erreur n'est pas claire, ajoutez `logger.debug()` dans votre code

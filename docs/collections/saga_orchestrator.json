@@ -1,38 +1,432 @@
 {
 	"info": {
 		"_postman_id": "4f670398-937d-44b2-ab05-e72cc3280f05",
-		"name": "LOG430 Saga Orchestrator",
+		"name": "LOG430 Saga Orchestrator - Tests Complets",
+		"description": "Collection complète pour tester l'orchestrateur de saga et tous ses composants",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "6052895"
 	},
+	"variable": [
+		{
+			"key": "saga_url",
+			"value": "http://localhost:5123",
+			"type": "default"
+		},
+		{
+			"key": "gateway_url",
+			"value": "http://localhost:8080",
+			"type": "default"
+		},
+		{
+			"key": "store_manager_url",
+			"value": "http://localhost:5000",
+			"type": "default"
+		},
+		{
+			"key": "payment_service_url",
+			"value": "http://localhost:5009",
+			"type": "default"
+		},
+		{
+			"key": "test_user_id",
+			"value": "1",
+			"type": "default"
+		},
+		{
+			"key": "test_product_id",
+			"value": "1",
+			"type": "default"
+		}
+	],
 	"item": [
 		{
-			"name": "/saga/order",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"user_id\": 1,\n    \"items\": [{\"product_id\": 3, \"quantity\": 2}, {\"product_id\": 2, \"quantity\": 4}]\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+			"name": "1. Health Checks",
+			"item": [
+				{
+					"name": "Health Check - Saga Orchestrator",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{saga_url}}/health-check",
+							"host": ["{{saga_url}}"],
+							"path": ["health-check"]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "localhost:5123/saga/order",
-					"host": [
-						"localhost"
-					],
-					"port": "5123",
-					"path": [
-						"saga",
-						"order"
-					]
+				{
+					"name": "Health Check - Store Manager (direct)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{store_manager_url}}/health-check",
+							"host": ["{{store_manager_url}}"],
+							"path": ["health-check"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check - Payment Service (direct)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{payment_service_url}}/health-check",
+							"host": ["{{payment_service_url}}"],
+							"path": ["health-check"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check - API Gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/store-api/test/slow/1",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "test", "slow", "1"]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
+		},
+		{
+			"name": "2. Tests Préparatoires",
+			"item": [
+				{
+					"name": "Vérifier Stock Produit 1",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks/{{test_product_id}}",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks", "{{test_product_id}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ajouter du Stock (si nécessaire)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": {{test_product_id}},\n    \"quantity\": 50\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Vérifier Produit Existe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/store-api/products/{{test_product_id}}",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "products", "{{test_product_id}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Tests de Saga - Cas de Succès",
+			"item": [
+				{
+					"name": "Saga Réussie - 1 Produit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": {{test_product_id}},\n            \"quantity\": 2\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{saga_url}}/saga/order",
+							"host": ["{{saga_url}}"],
+							"path": ["saga", "order"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Saga Réussie - Plusieurs Produits",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 1\n        },\n        {\n            \"product_id\": 2,\n            \"quantity\": 1\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{saga_url}}/saga/order",
+							"host": ["{{saga_url}}"],
+							"path": ["saga", "order"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Saga via API Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": {{test_product_id}},\n            \"quantity\": 1\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/saga-api/order",
+							"host": ["{{gateway_url}}"],
+							"path": ["saga-api", "order"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Tests de Saga - Cas d'Échec",
+			"item": [
+				{
+					"name": "Échec - Stock Insuffisant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": {{test_product_id}},\n            \"quantity\": 999999\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{saga_url}}/saga/order",
+							"host": ["{{saga_url}}"],
+							"path": ["saga", "order"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Échec - Produit Inexistant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": 999999,\n            \"quantity\": 1\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{saga_url}}/saga/order",
+							"host": ["{{saga_url}}"],
+							"path": ["saga", "order"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Échec - Utilisateur Invalide",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": 999999,\n    \"items\": [\n        {\n            \"product_id\": {{test_product_id}},\n            \"quantity\": 1\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{saga_url}}/saga/order",
+							"host": ["{{saga_url}}"],
+							"path": ["saga", "order"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Tests des Handlers Individuels",
+			"item": [
+				{
+					"name": "Test Handler - Créer Commande",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"items\": [\n        {\n            \"product_id\": {{test_product_id}},\n            \"quantity\": 1\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/store-api/orders",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "orders"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Handler - Diminuer Stock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": {{test_product_id}},\n    \"quantity\": -2\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Handler - Rollback Stock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": {{test_product_id}},\n    \"quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Handler - Créer Paiement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{test_user_id}},\n    \"amount\": 25.50,\n    \"currency\": \"CAD\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/payments-api/payments",
+							"host": ["{{gateway_url}}"],
+							"path": ["payments-api", "payments"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Vérifications Post-Test",
+			"item": [
+				{
+					"name": "Vérifier Stock Final",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks/{{test_product_id}}",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks", "{{test_product_id}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lister Toutes les Commandes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{store_manager_url}}/orders",
+							"host": ["{{store_manager_url}}"],
+							"path": ["orders"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rapport des Stocks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/store-api/stocks/reports/overview-stocks",
+							"host": ["{{gateway_url}}"],
+							"path": ["store-api", "stocks", "reports", "overview-stocks"]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
